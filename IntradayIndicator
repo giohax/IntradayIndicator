@@ -1,0 +1,77 @@
+indicator("Paramount Cycle",overlay=true,max_lines_count =500,max_boxes_count =500)
+
+RangeHighColor=input.color(color.new(#e91e63,25),inline="rh",title="Range High Color")
+RangeHighStyle=input.string("Solid",options=["Solid","Dotted",'Dashed'],inline="rh",title="")
+
+RangeLowColor=input.color(color.new(#e91e63,25),inline="rl",title="Range Low Color")
+RangeLowStyle=input.string("Solid",options=["Solid","Dotted",'Dashed'],inline="rl",title="")
+
+RangeMidColor=input.color(color.new(#e91e63,25),inline="rm",title="Range Mid Color")
+RangeMidStyle=input.string("Solid",options=["Solid","Dotted",'Dashed'],inline="rm",title="")
+
+BoxColor= input.color(color.new(#e91e63,75))
+ShowBox = input.bool(true)
+
+asiaSession  = "2100-0500"
+ExtendSession  = "2200-1400"
+
+InSession(sess) => na(time(timeframe.period, sess ,"UTC")) == false
+asia_s = InSession(asiaSession)
+extend_s = InSession(ExtendSession)
+
+var float RangeHigh = na
+var float RangeLow = na
+
+var line sessHigh = na
+var line sessLow = na
+var line sessCenter = na
+var box sessBox = na
+
+StyleToEnum(s) =>
+    if s == "Solid"
+        line.style_solid
+    else if s == "Dotted"
+        line.style_dotted
+    else
+        line.style_dashed
+
+UpdateLine(ln,v) =>
+    if not na(ln)
+        line.set_x2(ln,bar_index)
+        line.set_y1(ln,v)
+        line.set_y2(ln,v)
+
+UpdateBox(bx,t,b) =>
+    if not na(bx)
+        box.set_right(bx,bar_index)
+        box.set_top(bx,t)
+        box.set_bottom(bx,b)
+if asia_s 
+    if asia_s[1]==false
+        RangeHigh := high
+        RangeLow := low
+        
+        RangeMid = (RangeHigh + RangeLow) / 2
+        
+        sessHigh := line.new(bar_index,RangeHigh,bar_index+1,RangeHigh,color=RangeHighColor,style=StyleToEnum(RangeHighStyle))
+        sessLow := line.new(bar_index,RangeLow,bar_index+1,RangeLow,color=RangeLowColor,style=StyleToEnum(RangeLowStyle))
+        sessCenter := line.new(bar_index,RangeMid,bar_index+1,RangeMid,color=RangeMidColor,style=StyleToEnum(RangeMidStyle))
+        
+        if ShowBox
+            sessBox := box.new(bar_index,RangeHigh,bar_index+1,RangeLow,border_color=BoxColor,bgcolor=BoxColor)
+    else
+        RangeHigh := math.max(RangeHigh,high)
+        RangeLow := math.min(RangeLow,low)
+
+UpdateLine(sessHigh,RangeHigh)
+UpdateLine(sessLow,RangeLow)
+UpdateLine(sessCenter,(RangeHigh + RangeLow) / 2)
+UpdateBox(sessBox,RangeHigh,RangeLow)
+
+if asia_s==false and asia_s[1]
+    sessBox := na
+        
+if extend_s==false and extend_s[1]
+    sessHigh := na
+    sessLow := na
+    sessCenter := na
